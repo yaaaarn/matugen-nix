@@ -8,25 +8,28 @@
 let
   cfg = config.matugen;
 
-  matugenArgs =
-    if cfg.wallpaper != null then
-      let
-        safeWallpaperPath = builtins.unsafeDiscardStringContext "${cfg.wallpaper}";
-      in
-      "image \"${safeWallpaperPath}\""
-    else if cfg.seedColor != null then
-      "color hex \"${cfg.seedColor}\""
+  matugenJson = pkgs.runCommand "matugen-colors.json" {
+    WALLPAPER = if cfg.wallpaper != null then cfg.wallpaper else "";
+    SEED = if cfg.seedColor != null then cfg.seedColor else "";
+  } ''
+    if [ -n "$WALLPAPER" ]; then
+      ${pkgs.matugen}/bin/matugen image "$WALLPAPER" \
+        -j hex \
+        -m ${cfg.mode} \
+        -t scheme-${cfg.scheme} \
+        --prefer ${cfg.prefer} > $out
+    elif [ -n "$SEED" ]; then
+      ${pkgs.matugen}/bin/matugen color hex "$SEED" \
+        -j hex \
+        -m ${cfg.mode} \
+        -t scheme-${cfg.scheme} > $out
     else
-      "";
-
-  # We use IFD (Import From Derivation) to run matugen at evaluation time
-  matugenJson = pkgs.runCommand "matugen-colors.json" { } ''
-    ${pkgs.matugen}/bin/matugen ${matugenArgs} -j hex -m ${cfg.mode} -t scheme-${cfg.scheme} --prefer saturation > $out
+      echo "{}" > $out
+    fi
   '';
 
-  # Parse the generated JSON if the module is enabled
   generatedTheme =
-    if (cfg.enable && matugenArgs != "") then
+    if cfg.enable then
       builtins.fromJSON (builtins.readFile matugenJson)
     else
       {
@@ -36,7 +39,6 @@ let
         };
       };
 
-  # Transparently parse colors and base16, keeping dark/light/default structure
   parseColorObject =
     obj:
     if builtins.isAttrs obj && builtins.hasAttr "color" obj then
@@ -49,12 +51,10 @@ let
   parsedColors = parseColorObject (generatedTheme.colors or { });
   parsedBase16 = parseColorObject (generatedTheme.base16 or { });
 
-  # Palettes don't have dark/light variants, they are just tones
   parsedPalettes = builtins.mapAttrs (
     name: tones: builtins.mapAttrs (tone: value: value.color or "") tones
   ) (generatedTheme.palettes or { });
 
-  # Final theme structure
   theme = {
     generated = {
       colors = parsedColors;
@@ -71,7 +71,7 @@ in
     wallpaper = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
-      example = "./wallpapers/image.png";
+      example = lib.literalExpression "./wallpapers/image.png";
       description = ''
         Path to the wallpaper image to use as the base for the color palette.
         Mutually exclusive with `seedColor`.
@@ -116,6 +116,22 @@ in
       description = "Matugen generation scheme to use.";
     };
 
+    prefer = lib.mkOption {
+      type = lib.types.enum [
+        "darkness"
+        "lightness"
+        "saturation"
+        "less-saturation"
+        "value"
+        "closest-to-fallback"
+      ];
+      default = "saturation";
+      description = ''
+        When multiple colors can be extracted from an image, this decides 
+        which to pick without needing user input. (Only applies when using `wallpaper`).
+      '';
+    };
+
     customColors = lib.mkOption {
       type = lib.types.attrsOf lib.types.anything;
       default = { };
@@ -153,6 +169,7 @@ in
       description = "The final resolved theme structure.";
     };
   };
+
   config = lib.mkIf cfg.enable {
     assertions = [
       {
