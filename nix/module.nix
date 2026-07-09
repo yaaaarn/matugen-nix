@@ -30,7 +30,7 @@ let
 
   generatedTheme =
     if cfg.enable then
-      builtins.fromJSON (builtins.readFile matugenJson)
+      builtins.fromJSON (builtins.unsafeDiscardStringContext (builtins.readFile matugenJson))
     else
       {
         colors = {
