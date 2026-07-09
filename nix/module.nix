@@ -18,7 +18,7 @@ let
 
   # We use IFD (Import From Derivation) to run matugen at evaluation time
   matugenJson = pkgs.runCommand "matugen-colors.json" { } ''
-    ${pkgs.matugen}/bin/matugen ${matugenArgs} -j hex -m ${cfg.mode} -t scheme-${cfg.scheme} > $out
+    ${pkgs.matugen}/bin/matugen ${matugenArgs} -j hex -m ${cfg.mode} -t scheme-${cfg.scheme} --prefer saturation > $out
   '';
 
   # Parse the generated JSON if the module is enabled
