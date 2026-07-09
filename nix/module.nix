@@ -17,6 +17,7 @@ let
         -j hex \
         -m ${cfg.mode} \
         -t scheme-${cfg.scheme} \
+        --contrast ${cfg.contrast} \
         --prefer ${cfg.prefer} > $out
     elif [ -n "$SEED" ]; then
       ${pkgs.matugen}/bin/matugen color hex "$SEED" \
@@ -129,6 +130,16 @@ in
       description = ''
         When multiple colors can be extracted from an image, this decides 
         which to pick without needing user input. (Only applies when using `wallpaper`).
+      '';
+    };
+
+    contrast = lib.mkOption {
+      type = lib.types.nullOr lib.types.float;
+      default = 0.0;
+      example = 0.5;
+      description = ''
+        The contrast level to pass to Matugen. 
+        Usually ranges from -1.0 to 1.0. If null, the default contrast (0.0) is used.
       '';
     };
 
