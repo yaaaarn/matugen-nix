@@ -18,7 +18,7 @@ let
         -m ${cfg.mode} \
         -t scheme-${cfg.scheme} \
         --contrast ${cfg.contrast} \
-        --prefer ${cfg.prefer} > $out
+        --prefer ${toString cfg.prefer} > $out
     elif [ -n "$SEED" ]; then
       ${pkgs.matugen}/bin/matugen color hex "$SEED" \
         -j hex \
