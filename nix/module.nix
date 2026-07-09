@@ -10,7 +10,10 @@ let
 
   matugenArgs =
     if cfg.wallpaper != null then
-      "image \"${builtins.unsafeDiscardStringContext (toString cfg.wallpaper)}\""
+      let
+        safeWallpaperPath = builtins.unsafeDiscardStringContext "${cfg.wallpaper}";
+      in
+      "image \"${safeWallpaperPath}\""
     else if cfg.seedColor != null then
       "color hex \"${cfg.seedColor}\""
     else
